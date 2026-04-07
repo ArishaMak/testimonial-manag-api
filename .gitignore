@@ -1,0 +1,27 @@
+# зависимости
+node_modules/
+
+# !!!
+.env
+
+# логи
+*.log
+npm-debug.log*
+
+# системные
+.DS_Store
+Thumbs.db
+
+# IDE настройки
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# временные файлы
+tmp/
+temp/
+
+# тестовая data
+coverage/
+.nyc_output/
