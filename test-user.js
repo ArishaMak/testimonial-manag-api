@@ -8,6 +8,9 @@ async function test() {
         await mongoose.connect(process.env.MONGODB_URI);
         console.log('бд подключ');
 
+        await User.deleteMany({ email: 'test@example.com' });
+        console.log('старые тесты удалены');
+
         // пробуем создать тестового юзера
         const user = new User({
             email: 'test@example.com',

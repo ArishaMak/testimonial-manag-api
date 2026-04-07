@@ -6,13 +6,12 @@ const Counter = require('./counter');
 const UserSchema = new mongoose.Schema({
     userId: {
         type: Number,
-        required: true,
-        unique: true
+        /*unique: true*/
     },
     email: {
         type: String,
         required: [true, 'Email is required'],
-        unique: true,
+        /*unique: true,*/
         lowercase: true,
         trim: true,
         match: [/^\S+@\S+\.\S+$/, 'Invalid email format'] //валидация почты
@@ -42,38 +41,43 @@ const UserSchema = new mongoose.Schema({
 });
 
 // индексы
-UserSchema.index({ email: 1 });
-UserSchema.index({ userId: 1 });
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ userId: 1 }, { unique: true });
 
-//хук для авто-инкремента userId (через counter-коллекцию)
+//хук (через async function) для авто-инкремента userId (через counter-коллекцию)
 UserSchema.pre('save', async function (next) {
+    console.log('пресейв хук сработал');
+    console.log('this.isNew:', this.isNew);
+
     if (this.isNew) {
         try {
+            console.log('генерируем айдишку юзера');
             const counter = await Counter.findByIdAndUpdate(
                 'userId',
                 { $inc: { seq: 1 } },
                 { new: true, upsert: true, runValidators: true }
             );
+            console.log('Counter вернул', counter);
             this.userId = counter.seq;
-            next();
+            console.log('userID присвоен', this.userId);
         } catch (error) {
-            next(error);
+            console.error('ошибка в хуке:', error);
+            throw error;
         }
     } else {
-        next();
+        console.log('не новый док, скипаем');
     }
 });
 
 //хэширование пароля
-UserSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
+UserSchema.pre('save', async function () {
+    if (!this.isModified('password')) return;
 
     try {
         const salt = await bcrypt.genSalt(10);
         this.password = await bcrypt.hash(this.password, salt);
-        next();
     } catch (error) {
-        next(error);
+        throw error;
     }
 });
 
