@@ -25,7 +25,7 @@ const auth = async (req, res, next) => {
         req.user = decoded; // сохранили данные
 
         next();
-    } catch (error) {
+    } catch (error) { 
         res.status(401).json({
             code: 401,
             status: 'failure',
