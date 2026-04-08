@@ -1,9 +1,12 @@
-// заглушка !! потом исправить
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth'); // middleware проверки токена
+const { create, getAll } = require('../controllers/testimonialController'); // импортируем методы
 
-router.get('/', (req, res) => {
-    res.json({ message: 'Testimonials route is ready' });
-});
+// создание нового отзыва
+router.post('/', auth, create);
+
+// получение списка отзывов (+ пагинацией + фильтры)
+router.get('/', auth, getAll);
 
 module.exports = router;

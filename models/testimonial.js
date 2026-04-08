@@ -5,7 +5,6 @@ const { v4: uuidv4 } = require('uuid'); // деструктизация объе
 const TestimonialSchema = new mongoose.Schema({
     testimonialId: {
         type: String,
-        required: true,
         unique: true
     },
     userId: {
@@ -73,11 +72,21 @@ TestimonialSchema.pre(/^find/, function (next) {
     next(); //все ок, едем дальше
 });
 
-TestimonialSchema.pre('save', function (next) {
+/*TestimonialSchema.pre('save', function (next) {
     if (this.isNew) {
         this.testimonialId = uuidv4();
     }
-    next(); //синхронный хук, поэтому сразу юзаем
+    //next(); синхронный хук, поэтому сразу юзаем
+});*/
+
+TestimonialSchema.pre('save', async function () {
+    try {
+        if (this.isNew) {
+            this.testimonialId = uuidv4();
+        }
+    } catch (error) {
+        throw error;
+    }
 });
 
 module.exports = mongoose.model('Testimonial', TestimonialSchema);
