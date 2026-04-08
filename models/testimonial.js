@@ -51,7 +51,7 @@ const TestimonialSchema = new mongoose.Schema({
         }
     }],
     // мягкое удаление. чтобы удаленные данные не получить
-    isDeleted: { 
+    isDeleted: {
         type: Boolean,
         default: false
     },
@@ -66,17 +66,44 @@ TestimonialSchema.index({ userId: 1 });
 TestimonialSchema.index({ status: 1 });
 TestimonialSchema.index({ userId: 1, isDeleted: 1 });
 
-//хук мягкого удаления. /^find/ - регуляторн выражение
+/*испр хук мягкого удаления не воркает
 TestimonialSchema.pre(/^find/, function (next) {
-    this.find({ isDeleted: { $ne: true } });
-    next(); //все ок, едем дальше
-});
+    this.where({ isDeleted: { $ne: true } });
+    next();
+});*/
 
-/*TestimonialSchema.pre('save', function (next) {
+TestimonialSchema.pre('save', function (next) {
     if (this.isNew) {
         this.testimonialId = uuidv4();
     }
-    //next(); синхронный хук, поэтому сразу юзаем
+    next(); //синхронный хук, поэтому сразу юзаем
+});
+
+/*TestimonialSchema.pre(/^find/, function (next) {
+    this.where({ isDeleted: { $ne: true } });
+    next();
+});*/
+
+// models/testimonial.js
+
+/* мягкое удаление разными хуками
+
+// для find()
+TestimonialSchema.pre('find', function (next) {
+    this.where({ isDeleted: { $ne: true } });
+    next();
+});
+
+// для findOne()
+TestimonialSchema.pre('findOne', function (next) {
+    this.where({ isDeleted: { $ne: true } });
+    next();
+});
+
+// для findById()
+TestimonialSchema.pre('findById', function (next) {
+    this.where({ isDeleted: { $ne: true } });
+    next();
 });*/
 
 TestimonialSchema.pre('save', async function () {

@@ -1,4 +1,6 @@
 const Testimonial = require('../models/testimonial');
+// импорт правил
+
 
 // создание отзыва
 const create = async (req, res) => {
@@ -98,4 +100,74 @@ const getAll = async (req, res) => {
     }
 };
 
-module.exports = { create, getAll };
+// получаем одтн отзыв по айди
+const getOne = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const testimonial = await Testimonial.findOne({
+            testimonialId: id,
+            isDeleted: false  // фильтруем
+        });
+
+        if (!testimonial) {
+            return res.status(404).json({
+                code: 404,
+                status: 'failure',
+                message: 'Testimonial not found'
+            });
+        }
+
+        res.status(200).json({
+            code: 200,
+            status: 'success',
+            testimonial
+        });
+
+    } catch (error) {
+        console.error('Get one testimonial error:', error);
+        res.status(500).json({
+            code: 500,
+            status: 'failure',
+            message: 'Server error'
+        });
+    }
+};
+
+const softDelete = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const result = await Testimonial.updateOne(
+            { testimonialId: id },
+            {
+                isDeleted: true,
+                deletedAt: new Date()
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({
+                code: 404,
+                status: 'failure',
+                message: 'Testimonial not found or already deleted'
+            });
+        }
+
+        res.status(200).json({
+            code: 200,
+            status: 'success',
+            message: 'Testimonial soft deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('Soft delete error:', error);
+        res.status(500).json({
+            code: 500,
+            status: 'failure',
+            message: 'Server error'
+        });
+    }
+};
+
+module.exports = { create, getAll, getOne, softDelete };
