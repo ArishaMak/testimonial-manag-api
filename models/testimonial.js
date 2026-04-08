@@ -72,11 +72,15 @@ TestimonialSchema.pre(/^find/, function (next) {
     next();
 });*/
 
-TestimonialSchema.pre('save', function (next) {
-    if (this.isNew) {
-        this.testimonialId = uuidv4();
+
+TestimonialSchema.pre('save', async function () {
+    try {
+        if (this.isNew) {
+            this.testimonialId = uuidv4();
+        }
+    } catch (error) {
+        throw error;
     }
-    next(); //синхронный хук, поэтому сразу юзаем
 });
 
 /*TestimonialSchema.pre(/^find/, function (next) {

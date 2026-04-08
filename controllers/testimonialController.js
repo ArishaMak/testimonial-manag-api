@@ -1,6 +1,6 @@
 const Testimonial = require('../models/testimonial');
 // импорт правил
-
+const { ALLOWED_STATUS_TRANSITIONS } = require('../lib/constants');
 
 // создание отзыва
 const create = async (req, res) => {
@@ -170,4 +170,86 @@ const softDelete = async (req, res) => {
     }
 };
 
-module.exports = { create, getAll, getOne, softDelete };
+// обновление статуса отзыва
+const updateStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status: newStatus } = req.body;
+
+        // валидация на новый статус
+        if (!newStatus) {
+            return res.status(400).json({
+                code: 400,
+                status: 'failure',
+                message: 'Please provide a new status'
+            });
+        }
+
+        // ищем отзыв
+        const testimonial = await Testimonial.findOne({
+            testimonialId: id,
+            isDeleted: false
+        });
+
+        if (!testimonial) {
+            return res.status(404).json({
+                code: 404,
+                status: 'failure',
+                message: 'Testimonial not found'
+            });
+        }
+
+        // проверка владельца
+        if (testimonial.userId !== req.user.userId) {
+            return res.status(403).json({
+                code: 403,
+                status: 'failure',
+                message: 'Forbidden: You can only modify your own testimonials'
+            });
+        }
+
+        const currentStatus = testimonial.status;
+
+        // получаем списак эвэйлбл статусов для данного
+        const allowedNextStatuses = ALLOWED_STATUS_TRANSITIONS[currentStatus];
+
+        //undefined или массив не содержит newStatus - ошибка
+        if (!allowedNextStatuses || !allowedNextStatuses.includes(newStatus)) {
+            return res.status(400).json({
+                code: 400,
+                status: 'failure',
+                message: `Cannot transition from ${currentStatus} to ${newStatus}`
+            });
+        }
+
+        // сохр измен
+        testimonial.status = newStatus;
+
+        // фикс времени в shared
+        if (newStatus === 'shared' && !testimonial.sharedAt) {
+            testimonial.sharedAt = new Date();
+        }
+
+        await testimonial.save();
+
+        // успешный ответ
+        res.status(200).json({
+            code: 200,
+            status: 'success',
+            message: 'Status updated successfully',
+            data: {
+                testimonial
+            }
+        });
+
+    } catch (error) {
+        console.error('Update status error:', error);
+        res.status(500).json({
+            code: 500,
+            status: 'failure',
+            message: 'Server error'
+        });
+    }
+};
+
+module.exports = { create, getAll, getOne, softDelete, updateStatus };
