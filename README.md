@@ -289,7 +289,7 @@ Content-Type: application/json
 {
   "isEnabled": true,
   "defaultVideoLength": 30,
-  "thankYouMessage": "Thank you for your feedback! 🎉"
+  "thankYouMessage": "Thank you for your feedback!"
 }
 
 ## Testing
