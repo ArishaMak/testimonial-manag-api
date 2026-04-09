@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth'); // middleware проверки токена
-const { create, getAll, update, getOne, softDelete, updateStatus, share, getSettings, upsertSettings, getAnalytics } = require('../controllers/testimonialController'); // импортируем методы
+const { create, getAll, update, getOne, softDelete, updateStatus, share, getSettings, upsertSettings, getAnalytics, search } = require('../controllers/testimonialController'); // импортируем методы
 
 // создание нового отзыва
 router.post('/', auth, create);
@@ -17,6 +17,9 @@ router.post('/settings', auth, upsertSettings);
 
 // ананлитика
 router.get('/analytics', auth, getAnalytics);
+
+// бонусное - поиск отзывов
+router.get('/search', auth, search);
 
 // динамические роуты
 // получаем один отзыв по айди
