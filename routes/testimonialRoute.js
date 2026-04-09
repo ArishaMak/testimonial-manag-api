@@ -1,7 +1,8 @@
+// routes/testimonialRoute.js
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth'); // middleware проверки токена
-const { create, getAll, getOne, softDelete, updateStatus, share } = require('../controllers/testimonialController'); // импортируем методы
+const { create, getAll, update, getOne, softDelete, updateStatus, share, getSettings, upsertSettings, getAnalytics } = require('../controllers/testimonialController'); // импортируем методы
 
 // создание нового отзыва
 router.post('/', auth, create);
@@ -9,6 +10,15 @@ router.post('/', auth, create);
 // получение списка отзывов (+ пагинацией + фильтры)
 router.get('/', auth, getAll);
 
+// специфичные роуты
+// настройки
+router.get('/settings', auth, getSettings);
+router.post('/settings', auth, upsertSettings);
+
+// ананлитика
+router.get('/analytics', auth, getAnalytics);
+
+// динамические роуты
 // получаем один отзыв по айди
 router.get('/:testimonialId', auth, getOne);
 
@@ -20,5 +30,8 @@ router.patch('/:testimonialId/status', auth, updateStatus);
 
 // шаринг отзыва
 router.post('/:testimonialId/share', auth, share);
+
+// обновление отзыва
+router.put('/:testimonialId', auth, update);
 
 module.exports = router;

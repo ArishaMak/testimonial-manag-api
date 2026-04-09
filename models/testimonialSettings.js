@@ -52,4 +52,12 @@ const TestimonialSettingsSchema = new mongoose.Schema({
     timestamps: true
 });
 
+TestimonialSettingsSchema.set('toJSON', {
+    versionKey: false  // убирает __v из ответов
+});
+
+TestimonialSettingsSchema.set('toObject', {
+    versionKey: false  // для consistency
+});
+
 module.exports = mongoose.model('TestimonialSettings', TestimonialSettingsSchema);
