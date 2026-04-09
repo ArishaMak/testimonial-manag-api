@@ -35,6 +35,6 @@
     "jest": "^30.3.0",
     "mongodb-memory-server": "^11.0.1",
     "nodemon": "^3.1.14",
-    "superset": "^3.0.3"
+    "supertest": "^7.2.2"
   }
 }
