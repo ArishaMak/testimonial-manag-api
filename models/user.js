@@ -46,30 +46,30 @@ UserSchema.index({ userId: 1 }, { unique: true });
 
 //хук (через async function) для авто-инкремента userId (через counter-коллекцию)
 UserSchema.pre('save', async function (next) {
-    console.log('пресейв хук сработал');
-    console.log('this.isNew:', this.isNew);
+    /*console.log('пресейв хук сработал');*/
+    /*console.log('this.isNew:', this.isNew);*/
 
     if (this.isNew) {
         try {
-            console.log('генерируем айдишку юзера');
+            /*console.log('генерируем айдишку юзера');*/
             const counter = await Counter.findByIdAndUpdate(
                 'userId',
                 { $inc: { seq: 1 } },
                 { new: true, upsert: true, runValidators: true }
             );
-            console.log('Counter вернул', counter);
+            /*console.log('Counter вернул', counter);*/
             this.userId = counter.seq;
-            console.log('userID присвоен', this.userId);
+            /*console.log('userID присвоен', this.userId);*/
         } catch (error) {
             console.error('ошибка в хуке:', error);
             throw error;
         }
     } else {
-        console.log('не новый док, скипаем');
+        /*console.log('не новый док, скипаем');*/
     }
 });
 
-//хэширование пароля
+//хэширование пароля. в асинх нэкст не нужен
 UserSchema.pre('save', async function () {
     if (!this.isModified('password')) return;
 

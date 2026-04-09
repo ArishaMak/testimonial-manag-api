@@ -1,6 +1,6 @@
 const Testimonial = require('../models/testimonial');
 // импорт правил
-const { ALLOWED_STATUS_TRANSITIONS } = require('../lib/constants');
+const { ALLOWED_STATUS_TRANSITIONS, SHARING_CHANNELS } = require('../lib/constants');
 
 // создание отзыва
 const create = async (req, res) => {
@@ -55,8 +55,8 @@ const getAll = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // формируем фильтр
-        // userId из токена. isDeleted: false добавится автоматически хуком в модели
-        const filter = { userId: req.user.userId };
+        // userId из токена. // isDeleted: false добавится автоматически хуком в модели - мимо
+        const filter = { userId: req.user.userId, isDeleted: false }
         if (status) filter.status = status;
 
         // фильтр поиска по имени клиента или тексту отзыва
@@ -79,16 +79,15 @@ const getAll = async (req, res) => {
         res.status(200).json({
             code: 200,
             status: 'success',
-            data: {
-                testimonials,
-                pagination: {
-                    total,
-                    page: Number(page),
-                    limit: Number(limit),
-                    pages: Math.ceil(total / limit)
-                }
+            message: 'Data retrieved successfully',
+            data: testimonials,
+            pagination: {
+                total,
+                page: Number(page),
+                limit: Number(limit),
+                pages: Math.ceil(total / limit)
             }
-        });
+        })
 
     } catch (error) {
         console.error('Get all testimonials error:', error);
@@ -103,11 +102,11 @@ const getAll = async (req, res) => {
 // получаем одтн отзыв по айди
 const getOne = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { testimonialId } = req.params;
 
         const testimonial = await Testimonial.findOne({
-            testimonialId: id,
-            isDeleted: false  // фильтруем
+            testimonialId: testimonialId,
+            isDeleted: false // фильтруем
         });
 
         if (!testimonial) {
@@ -121,8 +120,9 @@ const getOne = async (req, res) => {
         res.status(200).json({
             code: 200,
             status: 'success',
-            testimonial
-        });
+            message: 'Data retrieved successfully',
+            data: testimonial
+        })
 
     } catch (error) {
         console.error('Get one testimonial error:', error);
@@ -134,30 +134,40 @@ const getOne = async (req, res) => {
     }
 };
 
+// мягкое удаление теперь с проверкой владельца
 const softDelete = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { testimonialId } = req.params;
 
-        const result = await Testimonial.updateOne(
-            { testimonialId: id },
-            {
-                isDeleted: true,
-                deletedAt: new Date()
-            }
-        );
+        const testimonial = await Testimonial.findOne({
+            testimonialId: testimonialId,
+            isDeleted: false
+        });
 
-        if (result.matchedCount === 0) {
+        if (!testimonial) {
             return res.status(404).json({
                 code: 404,
                 status: 'failure',
-                message: 'Testimonial not found or already deleted'
+                message: 'Testimonial not found'
             });
         }
+
+        if (Number(testimonial.userId) !== Number(req.user.userId)) {
+            return res.status(403).json({
+                code: 403,
+                status: 'failure',
+                message: 'Forbidden: You can only delete your own testimonials'
+            });
+        }
+
+        testimonial.isDeleted = true;
+        testimonial.deletedAt = new Date();
+        await testimonial.save();
 
         res.status(200).json({
             code: 200,
             status: 'success',
-            message: 'Testimonial soft deleted successfully'
+            message: 'Testimonial deleted successfully'
         });
 
     } catch (error) {
@@ -173,7 +183,7 @@ const softDelete = async (req, res) => {
 // обновление статуса отзыва
 const updateStatus = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { testimonialId } = req.params;
         const { status: newStatus } = req.body;
 
         // валидация на новый статус
@@ -187,7 +197,7 @@ const updateStatus = async (req, res) => {
 
         // ищем отзыв
         const testimonial = await Testimonial.findOne({
-            testimonialId: id,
+            testimonialId: testimonialId,
             isDeleted: false
         });
 
@@ -252,4 +262,92 @@ const updateStatus = async (req, res) => {
     }
 };
 
-module.exports = { create, getAll, getOne, softDelete, updateStatus };
+// шаринг отзыва
+const share = async (req, res) => {
+    try {
+        const { testimonialId } = req.params;
+        const { channels } = req.body;
+
+        // валидация на то переданы ли каналы
+        if (!channels || !Array.isArray(channels) || channels.length === 0) {
+            return res.status(400).json({
+                code: 400,
+                status: 'failure',
+                message: 'Please provide at least one sharing channel'
+            });
+        }
+
+        // проверка на валидность каналов
+        const invalidChannels = channels.filter(ch => !SHARING_CHANNELS.includes(ch));
+        if (invalidChannels.length > 0) {
+            return res.status(400).json({
+                code: 400,
+                status: 'failure',
+                message: `Invalid channels: ${invalidChannels.join(', ')}`
+            });
+        }
+
+        // ищем отзыв
+        const testimonial = await Testimonial.findOne({
+            testimonialId: testimonialId,
+            isDeleted: false
+        });
+
+        if (!testimonial) {
+            return res.status(404).json({
+                code: 404,
+                status: 'failure',
+                message: 'Testimonial not found'
+            });
+        }
+
+        // проверяем владельца
+        if (Number(testimonial.userId) !== Number(req.user.userId)) {
+            return res.status(403).json({
+                code: 403,
+                status: 'failure',
+                message: 'Forbidden: You can only share your own testimonials'
+            });
+        }
+
+        // проверяем статус — шарить можно только из completed или shared
+        if (testimonial.status !== 'completed' && testimonial.status !== 'shared') {
+            return res.status(400).json({
+                code: 400,
+                status: 'failure',
+                message: `Cannot share testimonial with status "${testimonial.status}". Must be "completed" first.`
+            });
+        }
+
+        // обновление данных о шаринге
+        const existing = testimonial.sharedChannels || [];
+        testimonial.sharedChannels = [...new Set([...existing, ...channels])]; // объединить с сущ и убрать дубли
+        if (!testimonial.sharedAt) {
+            testimonial.sharedAt = new Date();
+        }
+
+        // смена статуса
+        if (testimonial.status !== 'shared') {
+            testimonial.status = 'shared';
+        }
+
+        await testimonial.save();
+
+        res.status(200).json({
+            code: 200,
+            status: 'success',
+            message: 'Testimonial shared successfully',
+            data: testimonial
+        });
+
+    } catch (error) {
+        console.error('Share testimonial error:', error);
+        res.status(500).json({
+            code: 500,
+            status: 'failure',
+            message: 'Server error'
+        });
+    }
+};
+
+module.exports = { create, getAll, getOne, softDelete, updateStatus, share };

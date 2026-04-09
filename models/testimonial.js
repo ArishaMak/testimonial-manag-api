@@ -39,7 +39,7 @@ const TestimonialSchema = new mongoose.Schema({
         default: false
     },
     sharedAt: Date,
-    // валидатор без дубликатов:
+    /* валидатор без дубликатов:
     sharedChannels: [{
         type: String,
         enum: ['email', 'sms', 'facebook', 'instagram'],
@@ -49,6 +49,10 @@ const TestimonialSchema = new mongoose.Schema({
             },
             message: 'Duplicate channels not allowed'
         }
+    }],дули убираются в контроллере*/
+    sharedChannels: [{
+        type: String,
+        enum: ['email', 'sms', 'facebook', 'instagram']
     }],
     // мягкое удаление. чтобы удаленные данные не получить
     isDeleted: {
@@ -61,7 +65,7 @@ const TestimonialSchema = new mongoose.Schema({
 });
 
 //индексы
-TestimonialSchema.index({ testimonialId: 1 }, { unique: true });
+// TestimonialSchema.index({ testimonialId: 1 }, { unique: true });
 TestimonialSchema.index({ userId: 1 });
 TestimonialSchema.index({ status: 1 });
 TestimonialSchema.index({ userId: 1, isDeleted: 1 });
@@ -73,6 +77,7 @@ TestimonialSchema.pre(/^find/, function (next) {
 });*/
 
 
+/*последняя была
 TestimonialSchema.pre('save', async function () {
     try {
         if (this.isNew) {
@@ -80,6 +85,12 @@ TestimonialSchema.pre('save', async function () {
         }
     } catch (error) {
         throw error;
+    }
+});*/
+
+TestimonialSchema.pre('save', function () {
+    if (this.isNew) {
+        this.testimonialId = uuidv4();
     }
 });
 
@@ -110,7 +121,7 @@ TestimonialSchema.pre('findById', function (next) {
     next();
 });*/
 
-TestimonialSchema.pre('save', async function () {
+/*TestimonialSchema.pre('save', async function () {
     try {
         if (this.isNew) {
             this.testimonialId = uuidv4();
@@ -119,5 +130,5 @@ TestimonialSchema.pre('save', async function () {
         throw error;
     }
 });
-
+*/
 module.exports = mongoose.model('Testimonial', TestimonialSchema);
