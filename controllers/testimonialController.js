@@ -1,4 +1,5 @@
 const Testimonial = require('../models/testimonial');
+const TestimonialSettings = require('../models/testimonialSettings');
 // импорт правил
 const { ALLOWED_STATUS_TRANSITIONS, SHARING_CHANNELS } = require('../lib/constants');
 
@@ -350,4 +351,128 @@ const share = async (req, res) => {
     }
 };
 
-module.exports = { create, getAll, getOne, softDelete, updateStatus, share };
+// метод полного обновления отзыва (через put) + проверка владельца
+const update = async (req, res) => {
+    try {
+        const { testimonialId } = req.params; // берез из юрл!
+        const { customerName, customerEmail, customerPhone, videoUrl, rating, text, consentGiven } = req.body;
+
+        // ищем отзыв в базе с нужным айдишником и который не удален
+        const testimonial = await Testimonial.findOne({
+            testimonialId: testimonialId,
+            isDeleted: false
+        });
+
+        // не нашли - 404
+        if (!testimonial) {
+            return res.status(404).json({
+                code: 404,
+                status: 'failure',
+                message: 'Testimonial not found'
+            });
+        }
+
+        // проверяем владельца (пользователь = владелец)
+        if (Number(testimonial.userId) !== Number(req.user.userId)) {
+            return res.status(403).json({
+                code: 403,
+                status: 'failure',
+                message: 'Forbidden: You can only update your own testimonials'
+            });
+        }
+
+        // обновление передел полей и сохр
+        if (customerName !== undefined) testimonial.customerName = customerName;
+        if (customerEmail !== undefined) testimonial.customerEmail = customerEmail;
+        if (customerPhone !== undefined) testimonial.customerPhone = customerPhone;
+        if (videoUrl !== undefined) testimonial.videoUrl = videoUrl;
+        if (rating !== undefined) testimonial.rating = rating;
+        if (text !== undefined) testimonial.text = text;
+        if (consentGiven !== undefined) testimonial.consentGiven = consentGiven;
+
+        await testimonial.save(); // mongoose сохраняет изм в бд
+
+        res.status(200).json({
+            code: 200,
+            status: 'success',
+            message: 'Testimonial updated successfully',
+            data: testimonial
+        });
+
+    } catch (error) {
+        console.error('Update testimonial error:', error);
+        res.status(500).json({
+            code: 500,
+            status: 'failure',
+            message: 'Server error'
+        });
+    }
+};
+
+// получение настроек для отзыва
+const getSettings = async (req, res) => {
+    try {
+        const settings = await TestimonialSettings.findOne({ userId: req.user.userId });
+
+        // если настроек нет, возвращаем null в data (не 404)
+        res.status(200).json({
+            code: 200,
+            status: 'success',
+            message: 'Settings retrieved successfully',
+            data: settings // null - если не найдено
+        });
+
+    } catch (error) {
+        console.error('Get settings error:', error);
+        res.status(500).json({
+            code: 500,
+            status: 'failure',
+            message: 'Server error'
+        });
+    }
+};
+
+// создание и обновление настроек
+// настроек нет - mpngoDB создае тновый документ, натсройки есть - обновляем переданные поля
+const upsertSettings = async (req, res) => {
+    try {
+        const { isEnabled, defaultVideoLength, videoLengthOptions, questionnaire, sendingOptions, thankYouMessage, contactConsent } = req.body;
+
+        const settings = await TestimonialSettings.findOneAndUpdate(
+            { userId: req.user.userId }, // фильтр - ищем по юзеру
+            {
+                // обновляем только переданные поля
+                // через спрэд и тернарник - если не андэфайнд - обновляем
+                ...(isEnabled !== undefined && { isEnabled }),
+                ...(defaultVideoLength !== undefined && { defaultVideoLength }),
+                ...(videoLengthOptions !== undefined && { videoLengthOptions }),
+                ...(questionnaire !== undefined && { questionnaire }),
+                ...(sendingOptions !== undefined && { sendingOptions }),
+                ...(thankYouMessage !== undefined && { thankYouMessage }),
+                ...(contactConsent !== undefined && { contactConsent })
+            },
+            {
+                new: true, // вернуть док
+                upsert: true, // создать док
+                runValidators: true // валидация схемы
+            }
+        );
+
+        res.status(200).json({
+            code: 200,
+            status: 'success',
+            message: 'Settings saved successfully',
+            data: settings // тут будет null
+        });
+
+    } catch (error) {
+        console.error('Upsert settings error:', error);
+        res.status(500).json({
+            code: 500,
+            status: 'failure',
+            message: 'Server error'
+        });
+    }
+};
+
+module.exports = { create, getAll, update, getOne, softDelete, updateStatus, share, getSettings, upsertSettings };
