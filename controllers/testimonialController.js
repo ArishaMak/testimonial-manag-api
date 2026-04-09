@@ -631,4 +631,87 @@ const search = async (req, res) => {
     }
 };
 
-module.exports = { create, getAll, update, getOne, softDelete, updateStatus, share, getSettings, upsertSettings, getAnalytics, search };
+// бонусное 3 - массовое обновление статуса (bulk update)
+const bulkUpdateStatus = async (req, res) => {
+    try {
+        const { testimonialIds, status: newStatus } = req.body;
+
+        // валидация входных данных
+        if (!testimonialIds || !Array.isArray(testimonialIds) || testimonialIds.length === 0) {
+            return res.status(400).json({
+                code: 400,
+                status: 'failure',
+                message: 'Please provide an array of testimonialIds'
+            });
+        }
+        if (!newStatus) {
+            return res.status(400).json({
+                code: 400,
+                status: 'failure',
+                message: 'Please provide a new status'
+            });
+        }
+
+        const userId = req.user.userId;
+        const updated = [];
+        const failed = [];
+
+        // обрабатываем каждый ID отдельно
+        for (const testimonialId of testimonialIds) {
+            try {
+                const testimonial = await Testimonial.findOne({
+                    testimonialId,
+                    isDeleted: false
+                });
+
+                // не найден или не принадлежит пользователю
+                if (!testimonial || testimonial.userId !== userId) {
+                    failed.push({ testimonialId, reason: 'Not found or forbidden' });
+                    continue;
+                }
+
+                // проверка перехода статуса
+                const allowed = ALLOWED_STATUS_TRANSITIONS[testimonial.status];
+                if (!allowed || !allowed.includes(newStatus)) {
+                    failed.push({
+                        testimonialId,
+                        reason: `Cannot transition from ${testimonial.status} to ${newStatus}`
+                    });
+                    continue;
+                }
+
+                // обновление статуса и сохр
+                testimonial.status = newStatus;
+                if (newStatus === 'shared' && !testimonial.sharedAt) {
+                    testimonial.sharedAt = new Date();
+                }
+                await testimonial.save();
+                updated.push(testimonialId);
+
+            } catch (err) {
+                failed.push({ testimonialId, reason: err.message });
+            }
+        }
+
+        res.status(200).json({
+            code: 200,
+            status: 'success',
+            message: 'Bulk status update completed',
+            data: {
+                updated: updated.length,
+                failed: failed.length,
+                errors: failed
+            }
+        });
+
+} catch (error) {
+    console.error('Bulk update status error:', error);
+    res.status(500).json({
+        code: 500,
+        status: 'failure',
+        message: 'Server error'
+    });
+}
+};
+
+module.exports = { create, getAll, update, getOne, softDelete, updateStatus, share, getSettings, upsertSettings, getAnalytics, search, bulkUpdateStatus };
