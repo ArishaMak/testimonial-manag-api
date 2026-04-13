@@ -45,25 +45,18 @@ UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ userId: 1 }, { unique: true });
 
 //хук (через async function) для авто-инкремента userId (через counter-коллекцию)
-UserSchema.pre('save', async function (next) {
-    /*console.log('пресейв хук сработал');*/
-    /*console.log('this.isNew:', this.isNew);*/
+UserSchema.pre('save', async function () {
 
     if (this.isNew) {
-        try {
-            /*console.log('генерируем айдишку юзера');*/
-            const counter = await Counter.findByIdAndUpdate(
-                'userId',
-                { $inc: { seq: 1 } },
-                { new: true, upsert: true, runValidators: true }
-            );
-            /*console.log('Counter вернул', counter);*/
-            this.userId = counter.seq;
-            /*console.log('userID присвоен', this.userId);*/
-        } catch (error) {
-            console.error('ошибка в хуке:', error);
-            throw error;
-        }
+        /*console.log('генерируем айдишку юзера');*/
+        const counter = await Counter.findByIdAndUpdate(
+            'userId',
+            { $inc: { seq: 1 } },
+            { new: true, upsert: true, runValidators: true }
+        );
+        /*console.log('Counter вернул', counter);*/
+        this.userId = counter.seq;
+        /*console.log('userID присвоен', this.userId);*/
     } else {
         /*console.log('не новый док, скипаем');*/
     }
@@ -73,12 +66,8 @@ UserSchema.pre('save', async function (next) {
 UserSchema.pre('save', async function () {
     if (!this.isModified('password')) return;
 
-    try {
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
-    } catch (error) {
-        throw error;
-    }
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
 });
 
 //метод сравнения парля

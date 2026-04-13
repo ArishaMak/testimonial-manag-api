@@ -3,6 +3,11 @@
 require('dotenv').config();
 const { app, mongoose } = require('./app');
 
+if (!process.env.JWT_SECRET) {
+    console.error('CRITICAL ERROR: JWT_SECRET is not defined in .env file!');
+    process.exit(1);
+}
+
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
 

@@ -3,7 +3,6 @@
 
 const request = require('supertest'); // отправка http запроса
 const { MongoMemoryServer } = require('mongodb-memory-server'); // in-memory монгобд для тестов
-//const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 
 // импорт приложения
@@ -16,35 +15,43 @@ let token; // тестовый токен создаем
 const TEST_USER_ID = 999;
 const TEST_SECRET = process.env.JWT_SECRET || 'test_secret';
 
+process.env.MONGOMS_VERSION = '6.0.4';
+process.env.MONGOMS_DOWNLOAD_URL = 'https://fastdl.mongodb.org';
+
 // подготовка среды
 beforeAll(async () => {
     try {
-        // запуск MongoDB в памяти !!не реальная бд
         mongoServer = await MongoMemoryServer.create({
             binary: {
-                version: '6.0.4',
-                skipMD5: true
+                skipMD5: true,
             },
             instance: {
                 dbName: 'test_db'
-            }
+            },
+            autoStart: false
         });
 
+        await mongoServer.start();
         const uri = mongoServer.getUri();
-        await mongoose.connect(uri);
 
-        // имитация реал юзера и генерация токена для авторизации 
+        await mongoose.connect(uri, {
+            maxPoolSize: 10,
+            serverSelectionTimeoutMS: 30000
+        });
+
         token = jwt.sign(
             { userId: TEST_USER_ID, email: 'test@example.com' },
             TEST_SECRET,
             { expiresIn: '1h' }
         );
 
+        console.log('MongoDB Memory Server started on:', mongoServer.getUri());
+
     } catch (error) {
         console.error('Setup error:', error);
         throw error;
     }
-}, 60000); // !!! 60 секунд на запуск (первый раз скачивается MongoDB)
+}, 300000);
 
 afterAll(async () => {
     try {
@@ -55,10 +62,11 @@ afterAll(async () => {
         if (mongoServer) {
             await mongoServer.stop();
         }
+        console.log('MongoDB Memory Server stopped');
     } catch (error) {
         console.error('Cleanup error:', error);
     }
-}, 10000); // 10 секунд на очистку
+}, 20000);
 
 beforeEach(async () => {
     // очистка коллекции перед каждым тестом
@@ -91,7 +99,7 @@ describe('Testimonial CRUD API', () => {
             expect(res.body.data.userId).toBe(TEST_USER_ID); // ! юзер айди из токена а не из бади
             expect(res.body.data.testimonialId).toBeDefined();
             expect(res.body.data.status).toBe('draft'); // проверка дефолтного значения
-        }, 10000); // 10 секунд на тест
+        }, 10000);
 
         test('должен вернуть 400, если нет customerName', async () => {
             const res = await request(app)

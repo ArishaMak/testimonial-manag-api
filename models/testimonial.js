@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid'); // деструктизация объектов es6 для генерации uuid
-/*const myId = uuidv4(); как функцию*/
+// используем встроенный crypto.randomUUID() вместо uuid-пакета (ESM-only)
+const { randomUUID } = require('crypto');
 
 const TestimonialSchema = new mongoose.Schema({
     testimonialId: {
@@ -39,17 +39,6 @@ const TestimonialSchema = new mongoose.Schema({
         default: false
     },
     sharedAt: Date,
-    /* валидатор без дубликатов:
-    sharedChannels: [{
-        type: String,
-        enum: ['email', 'sms', 'facebook', 'instagram'],
-        validate: {
-            validator: function (arr) {
-                return new Set(arr).size === arr.length; // без дублей
-            },
-            message: 'Duplicate channels not allowed'
-        }
-    }],дули убираются в контроллере*/
     sharedChannels: [{
         type: String,
         enum: ['email', 'sms', 'facebook', 'instagram']
@@ -64,71 +53,23 @@ const TestimonialSchema = new mongoose.Schema({
     timestamps: true
 });
 
-//индексы
-// TestimonialSchema.index({ testimonialId: 1 }, { unique: true });
+// индексы
 TestimonialSchema.index({ userId: 1 });
 TestimonialSchema.index({ status: 1 });
 TestimonialSchema.index({ userId: 1, isDeleted: 1 });
 
-/*испр хук мягкого удаления не воркает
-TestimonialSchema.pre(/^find/, function (next) {
-    this.where({ isDeleted: { $ne: true } });
-    next();
-});*/
-
-
-/*последняя была
-TestimonialSchema.pre('save', async function () {
-    try {
-        if (this.isNew) {
-            this.testimonialId = uuidv4();
-        }
-    } catch (error) {
-        throw error;
-    }
-});*/
-
+// хук для генерации UUID
 TestimonialSchema.pre('save', function () {
     if (this.isNew) {
-        this.testimonialId = uuidv4();
+        this.testimonialId = randomUUID();
     }
 });
 
-/*TestimonialSchema.pre(/^find/, function (next) {
-    this.where({ isDeleted: { $ne: true } });
-    next();
-});*/
+// метод toJSON для скрытия __v
+TestimonialSchema.methods.toJSON = function () {
+    const doc = this.toObject();
+    delete doc.__v; // убираем version key из ответа
+    return doc;
+};
 
-// models/testimonial.js
-
-/* мягкое удаление разными хуками
-
-// для find()
-TestimonialSchema.pre('find', function (next) {
-    this.where({ isDeleted: { $ne: true } });
-    next();
-});
-
-// для findOne()
-TestimonialSchema.pre('findOne', function (next) {
-    this.where({ isDeleted: { $ne: true } });
-    next();
-});
-
-// для findById()
-TestimonialSchema.pre('findById', function (next) {
-    this.where({ isDeleted: { $ne: true } });
-    next();
-});*/
-
-/*TestimonialSchema.pre('save', async function () {
-    try {
-        if (this.isNew) {
-            this.testimonialId = uuidv4();
-        }
-    } catch (error) {
-        throw error;
-    }
-});
-*/
 module.exports = mongoose.model('Testimonial', TestimonialSchema);

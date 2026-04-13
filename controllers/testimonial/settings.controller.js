@@ -57,7 +57,7 @@ const upsertSettings = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Upsert settings error:', error);
+        console.error('Upsert settings error:', error);//испр
         res.status(500).json({
             code: 500,
             status: 'failure',

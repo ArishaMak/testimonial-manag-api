@@ -2,7 +2,7 @@
   "name": "testimonal-manag-api",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "test:user": "node test-user.js",
     "dev": "nodemon server.js",
@@ -19,8 +19,8 @@
       "**/*.test.js"
     ],
     "verbose": true,
-    "forceExit": true,
-    "testTimeout": 120000,
+    "forceExit": false,
+    "testTimeout": 300000,
     "transformIgnorePatterns": [
       "/node_modules/(?!uuid)"
     ]
@@ -30,16 +30,14 @@
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "dotenv": "^16.x.x",
+    "dotenv": "^16.4.5",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.2",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.4.1",
-    "uuid": "^13.0.0"
+    "mongoose": "^9.4.1"
   },
   "devDependencies": {
     "eslint": "^8.x.x",
-    "dotenv": "^17.4.1",
     "jest": "^30.3.0",
     "mongodb-memory-server": "^11.0.1",
     "nodemon": "^3.1.14",
