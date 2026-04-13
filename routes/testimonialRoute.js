@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth'); // middleware проверки токена
-const { create, getAll, update, getOne, softDelete, updateStatus, share, getSettings, upsertSettings, getAnalytics, search, bulkUpdateStatus, exportCsv } = require('../controllers/testimonialController'); // импортируем методы
+const { create, getAll, update, getOne, softDelete, updateStatus, share, getSettings, upsertSettings, getAnalytics, search, bulkUpdateStatus, exportCsv } = require('../controllers/testimonial'); // импортируем методы
 
 // создание нового отзыва
 router.post('/', auth, create);

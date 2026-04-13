@@ -3,7 +3,6 @@ const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 
 const register = async (req, res) => {
-    console.log('register получен: ', req.body);
     try {
         const { email, password, businessName } = req.body;
 
@@ -64,7 +63,6 @@ const register = async (req, res) => {
 };
 
 const login = async (req, res) => {
-    console.log('login запрос получен:', req.body);
     try {
         const { email, password } = req.body;
 
