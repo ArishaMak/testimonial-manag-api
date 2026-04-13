@@ -151,23 +151,22 @@
   }
 }
 
-PATCH /api/testimonials/:testimonialId/status
-Принимает { "status": "completed" } в теле запроса
-Обязательная валидация переходов статусов:
-draft → recording
-recording → processing
-processing → completed
-completed → shared
-Отклонение невалидных переходов с ошибкой 400 и понятным сообщением (например: "Cannot transition from draft to completed")
-При переходе в "shared" установить sharedAt на текущую дату
-DELETE /api/testimonials/:testimonialId
-Мягкое удаление: установить isDeleted: true и deletedAt: new Date()
-НЕ удалять документ из базы данных
-Пользователь может удалить только свои отзывы
+**PATCH `/api/testimonials/:testimonialId/status`**
+- Принимает `{ "status": "completed" }` в теле запроса
+- **Обязательная валидация переходов статусов:**
+  - `draft` → `recording`
+  - `recording` → `processing`
+  - `processing` → `completed`
+  - `completed` → `shared`
+- Отклонение невалидных переходов с ошибкой `400`
 
-POST /api/testimonials/:testimonialId/share
-Принимает { "channels": ["email", "facebook"] }
-Валидация каналов из допустимого списка: ["email", "sms", "facebook", "instagram"]
+**DELETE `/api/testimonials/:testimonialId`**
+- Мягкое удаление: установить `isDeleted: true` и `deletedAt: new Date()`
+- НЕ удалять документ из базы данных
+
+**POST `/api/testimonials/:testimonialId/share`**
+- Принимает `{ "channels": ["email", "facebook"] }`
+- Валидация каналов из допустимого списка
 Добавление каналов в sharedChannels (без дубликатов)
 Авто-переход статуса в "shared", если текущий статус "completed"
 Установка sharedAt, если ещё не установлено
